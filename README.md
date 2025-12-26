@@ -1,2 +1,0 @@
-# dokploy-skill
-Dokploy skill
