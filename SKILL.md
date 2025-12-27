@@ -162,7 +162,7 @@ volumes:
 - 아래의 예제와 같이 SSH로 서버에 접속하여 필요한 설정 파일을 확인하거나 명령어를 실행할 수 있습니다:
 
 ```bash
-ssh root@167.88.45.173 "cat /etc/dokploy/traefik/dynamic/middlewares.yml && echo '---' && curl -s -o /dev/null -w '%{http_code}' https://javapad.com 2>/dev/null || echo 'SSL 연결 확인 필요'"
+ssh root@a.b.c.d "cat /etc/dokploy/traefik/dynamic/middlewares.yml && echo '---' && curl -s -o /dev/null -w '%{http_code}' https://javapad.com 2>/dev/null || echo 'SSL 연결 확인 필요'"
 ```
 
 - 예를 들어 사용자가 아래와 같이 요청하면,
@@ -173,7 +173,7 @@ Dokploy 에 새로운 앱을 만들고, 도메인을 https://thruthesky.vibers.k
 - 아래와 같은 명령어로 잘 접속되는지 확인하고, 접속이 잘 안되면 각종 명령어 실행하여 Dokply/Traefik 설정을 확인, 수정하고 Docker 명령으로 컨테이너 상태를 점검하고 재 실행을 하면 됩니다.
 
 ```bash
-ssh root@167.88.45.173 "grep -l 'thruthesky.vibers.kr' /etc/dokploy/traefik/dynamic/*.yml 2>/dev/null | xargs cat 2>/dev/null || echo '해당 도메인 설정을 찾을 수 없습니다'"
+ssh root@a.b.c.d "grep -l 'thruthesky.vibers.kr' /etc/dokploy/traefik/dynamic/*.yml 2>/dev/null | xargs cat 2>/dev/null || echo '해당 도메인 설정을 찾을 수 없습니다'"
 curl -sI https://thruthesky.vibers.kr 2>&1 | head -20
 dig +short thruthesky.vibers.kr 2>/dev/null || nslookup thruthesky.vibers.kr 2>/dev/null | grep Address
 ```
@@ -206,33 +206,33 @@ echo | openssl s_client -connect mysingapo.com:443 -servername mysingapo.com 2>/
 - Traefik 설정 확인
 
 ```bash
-ssh root@209.97.169.136 "grep -r 'mysingapo' /etc/dokploy/traefik/dynamic/*.yml 2>/dev/null"
+ssh root@a.b.c.d "grep -r 'mysingapo' /etc/dokploy/traefik/dynamic/*.yml 2>/dev/null"
 ```
 
 - Dokploy 애플리케이션 상태 조회
 
 ```bash
-curl -s -X GET "http://209.97.169.136:3000/api/application.one?applicationId=DYmNZmKYtRG0RdNrsGcfn" \
+curl -s -X GET "http://a.b.c.d:3000/api/application.one?applicationId=DYmNZmKYtRG0RdNrsGcfn" \
   -H "accept: application/json" \
-  -H "x-api-key: sonubtQBAEYfqPgdHkAywwKyXlxGTYNDuGrRTbfiusHfhaHTBNMAOVKaCexWzBzNLnbUJ" | jq '.'
+  -H "x-api-key: ------api----ky------" | jq '.'
 ```
 
 - Traefik 설정 파일 전체 내용 확인
 
 ```bash
-ssh root@209.97.169.136 "cat /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml"
+ssh root@a.b.c.d "cat /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml"
 ```
 
 - Let's Encrypt 인증서 상태 확인
 
 ```bash
-ssh root@209.97.169.136 "ls -la /etc/dokploy/traefik/acme.json 2>/dev/null && cat /etc/dokploy/traefik/acme.json 2>/dev/null | jq '.letsencrypt.Certificates[] | select(.domain.main | contains(\"mysingapo\"))' 2>/dev/null || echo 'acme.json 없거나 인증서 없음'"
+ssh root@a.b.c.d "ls -la /etc/dokploy/traefik/acme.json 2>/dev/null && cat /etc/dokploy/traefik/acme.json 2>/dev/null | jq '.letsencrypt.Certificates[] | select(.domain.main | contains(\"mysingapo\"))' 2>/dev/null || echo 'acme.json 없거나 인증서 없음'"
 ```
 
 - ACME 인증서 파일 목록 확인
 
 ```bash
-ssh root@209.97.169.136 "ls -la /etc/dokploy/traefik/*.json 2>/dev/null"
+ssh root@a.b.c.d "ls -la /etc/dokploy/traefik/*.json 2>/dev/null"
 ```
 
 
@@ -240,13 +240,13 @@ ssh root@209.97.169.136 "ls -la /etc/dokploy/traefik/*.json 2>/dev/null"
 - certResolver를 xxx 로 변경
 
 ```bash
-ssh root@209.97.169.136 "sed -i 's/certResolver: letsencrypt$/certResolver: letsencrypt_http/g' /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml && cat /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml | grep -A2 'mysingapo'"
+ssh root@a.b.c.d "sed -i 's/certResolver: letsencrypt$/certResolver: letsencrypt_http/g' /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml && cat /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml | grep -A2 'mysingapo'"
 ```
 
 - 변경 사항을 확인하고 Traefik을 재시작
 
 ```bash
-ssh root@209.97.169.136 "grep 'certResolver' /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml"
+ssh root@a.b.c.d "grep 'certResolver' /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml"
 ```
 
 
