@@ -21,6 +21,7 @@ Dokploy는 셀프호스팅 PaaS(Platform as a Service) 도구로, Docker 기반 
 | `DOKPLOY_SERVER_IP` | Dokploy 서버 IP 주소 | `1.2.3.4` |
 | `ROOT_SSH_CONNECTION` | Root SSH 접속 주소 | `root@1.2.3.4` |
 | `DOKPLOY_API_KEY` | Dokploy API 키 | `abcd1234efgh5678ijkl9012mnop3456` |
+| `DOKPLOY_APPLICATION_ID` | (선택) 특정 애플리케이션 ID | `5f4dcc3b5aa765d61d8327deb882cf99` |
 
 위 정보를 항상 사용자에게 요청하세요. 이 정보가 없으면 Dokploy 서버에 접속하거나 API를 호출할 수 없습니다.
 
@@ -158,24 +159,101 @@ volumes:
 
 ### 서버 접속하여 필요한 모든 명령어를 직접 실행하기
 
-아래의 예제와 같이 SSH로 서버에 접속하여 필요한 설정 파일을 확인하거나 명령어를 실행할 수 있습니다:
+- 아래의 예제와 같이 SSH로 서버에 접속하여 필요한 설정 파일을 확인하거나 명령어를 실행할 수 있습니다:
 
 ```bash
 ssh root@167.88.45.173 "cat /etc/dokploy/traefik/dynamic/middlewares.yml && echo '---' && curl -s -o /dev/null -w '%{http_code}' https://javapad.com 2>/dev/null || echo 'SSL 연결 확인 필요'"
 ```
 
-예를 들어 사용자가 아래와 같이 요청하면,
+- 예를 들어 사용자가 아래와 같이 요청하면,
 ```txt
 Dokploy 에 새로운 앱을 만들고, 도메인을 https://thruthesky.vibers.kr 와 같이 연결했는데, 잘 동작하는지 확인해 주세요.
 ```
 
-아래와 같은 명령어로 잘 접속되는지 확인하고, 접속이 잘 안되면 각종 명령어 실행하여 Dokply/Traefik 설정을 확인, 수정하고 Docker 명령으로 컨테이너 상태를 점검하고 재 실행을 하면 됩니다.
+- 아래와 같은 명령어로 잘 접속되는지 확인하고, 접속이 잘 안되면 각종 명령어 실행하여 Dokply/Traefik 설정을 확인, 수정하고 Docker 명령으로 컨테이너 상태를 점검하고 재 실행을 하면 됩니다.
 
 ```bash
 ssh root@167.88.45.173 "grep -l 'thruthesky.vibers.kr' /etc/dokploy/traefik/dynamic/*.yml 2>/dev/null | xargs cat 2>/dev/null || echo '해당 도메인 설정을 찾을 수 없습니다'"
 curl -sI https://thruthesky.vibers.kr 2>&1 | head -20
 dig +short thruthesky.vibers.kr 2>/dev/null || nslookup thruthesky.vibers.kr 2>/dev/null | grep Address
 ```
+
+
+- 상세 연결 확인
+
+```bash
+curl -v https://mysingapo.com 2>&1 | head -50
+```
+
+- DNS 연결 확인
+
+```bash
+dig +short mysingapo.com 2>/dev/null || nslookup mysingapo.com 2>/dev/null
+```
+
+- SSL 검증 무시하고 응답 확인
+
+```bash
+curl -sk https://mysingapo.com 2>&1 | head -100
+```
+
+- SSL 인증서 상세 정보 확인
+
+```bash
+echo | openssl s_client -connect mysingapo.com:443 -servername mysingapo.com 2>/dev/null | openssl x509 -noout -issuer -dates -subject 2>/dev/null
+```
+
+- Traefik 설정 확인
+
+```bash
+ssh root@209.97.169.136 "grep -r 'mysingapo' /etc/dokploy/traefik/dynamic/*.yml 2>/dev/null"
+```
+
+- Dokploy 애플리케이션 상태 조회
+
+```bash
+curl -s -X GET "http://209.97.169.136:3000/api/application.one?applicationId=DYmNZmKYtRG0RdNrsGcfn" \
+  -H "accept: application/json" \
+  -H "x-api-key: sonubtQBAEYfqPgdHkAywwKyXlxGTYNDuGrRTbfiusHfhaHTBNMAOVKaCexWzBzNLnbUJ" | jq '.'
+```
+
+- Traefik 설정 파일 전체 내용 확인
+
+```bash
+ssh root@209.97.169.136 "cat /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml"
+```
+
+- Let's Encrypt 인증서 상태 확인
+
+```bash
+ssh root@209.97.169.136 "ls -la /etc/dokploy/traefik/acme.json 2>/dev/null && cat /etc/dokploy/traefik/acme.json 2>/dev/null | jq '.letsencrypt.Certificates[] | select(.domain.main | contains(\"mysingapo\"))' 2>/dev/null || echo 'acme.json 없거나 인증서 없음'"
+```
+
+- ACME 인증서 파일 목록 확인
+
+```bash
+ssh root@209.97.169.136 "ls -la /etc/dokploy/traefik/*.json 2>/dev/null"
+```
+
+
+
+- certResolver를 xxx 로 변경
+
+```bash
+ssh root@209.97.169.136 "sed -i 's/certResolver: letsencrypt$/certResolver: letsencrypt_http/g' /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml && cat /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml | grep -A2 'mysingapo'"
+```
+
+- 변경 사항을 확인하고 Traefik을 재시작
+
+```bash
+ssh root@209.97.169.136 "grep 'certResolver' /etc/dokploy/traefik/dynamic/center-web-uby7p4.yml"
+```
+
+
+
+
+
+
 
 
 
