@@ -14,17 +14,21 @@ Dokploy는 셀프호스팅 PaaS(Platform as a Service) 도구로, Docker 기반 
 
 **⛔ 스크립트 실행 전 반드시 사용자에게 아래 정보를 요청해야 합니다 ⛔**
 
-모든 Dokploy 관련 작업(서버 설정 확인, Docker 관리, 소프트웨어 설치 등)을 수행하기 전에 **반드시** 다음 두 가지 정보를 사용자에게 입력받아야 합니다:
+모든 Dokploy 관련 작업(서버 설정 확인, Docker 관리, 소프트웨어 설치 등)을 수행하기 전에 **반드시** 아래의 정보를 사용자에게 입력받아야 합니다:
 
 | 변수 | 설명 | 예시 |
 |------|------|------|
 | `DOKPLOY_SERVER_IP` | Dokploy 서버 IP 주소 | `1.2.3.4` |
 | `ROOT_SSH_CONNECTION` | Root SSH 접속 주소 | `root@1.2.3.4` |
+| `DOKPLOY_API_KEY` | Dokploy API 키 | `abcd1234efgh5678ijkl9012mnop3456` |
+
+위 정보를 항상 사용자에게 요청하세요. 이 정보가 없으면 Dokploy 서버에 접속하거나 API를 호출할 수 없습니다.
 
 ### 필수 확인 사항
 
 1. **SSH 키 인증 설정 완료**: `ssh-copy-id root@서버IP` 명령으로 비밀번호 없이 접속 가능해야 함
 2. **Root 권한 필수**: 서버 관리 작업에는 root 권한이 필요함
+3. **API 키 준비**: Dokploy 대시보드에서 API 키를 생성하고 준비해야 함
 
 ### 사용자에게 요청할 질문 예시
 
@@ -33,19 +37,29 @@ Dokploy 서버 작업을 진행하기 전에 다음 정보가 필요합니다:
 
 1. Dokploy 서버 IP 주소를 알려주세요 (예: 1.2.3.4)
 2. Root SSH 접속 주소를 알려주세요 (예: root@1.2.3.4)
+3. Dokploy API 키를 알려주세요 (Settings → Profile → API/CLI에서 생성)
 
 ※ SSH 키 인증이 설정되어 있어야 합니다 (ssh-copy-id 완료)
+※ API 키는 디버깅 및 원격 관리에 필요합니다
 ```
 
 ### 정보 입력 후 가능한 작업
 
+**SSH 기반 작업:**
 - ✅ 서버 설정 확인 및 변경
 - ✅ Docker 컨테이너 관리 (재부팅, 재시작, 설정)
 - ✅ Docker Compose 서비스 관리
 - ✅ 필요한 소프트웨어 설치
 - ✅ 로그 분석 및 문제 해결
 - ✅ 볼륨 백업 및 복원
-- ✅ 데이터베이스 관리
+
+**API 기반 작업:**
+- ✅ 프로젝트/애플리케이션 상태 조회
+- ✅ 애플리케이션 시작/중지/재배포
+- ✅ 환경 변수 확인 및 수정
+- ✅ 데이터베이스 관리 (생성, 삭제, 상태 확인)
+- ✅ 도메인 설정 확인 및 추가
+- ✅ 배포 이력 조회
 
 ### 🔒 정보 관리 방식 (보안)
 
@@ -96,6 +110,7 @@ ssh root@1.2.3.4 "cat /etc/dokploy/traefik/traefik.yml"
 
 | 작업 | 문서 |
 |------|------|
+| **API를 통한 원격 관리/디버깅** | [api.md](references/api.md) |
 | 애플리케이션 생성/관리/고급 설정 | [applications.md](references/applications.md) |
 | 빌드 타입 선택 (Nixpacks, Dockerfile 등) | [build-types.md](references/build-types.md) |
 | Cloudflare 도메인 및 SSL 설정 | [cloudflare.md](references/cloudflare.md) |
@@ -164,13 +179,94 @@ dig +short thruthesky.vibers.kr 2>/dev/null || nslookup thruthesky.vibers.kr 2>/
 
 
 
+## 🔌 API를 활용한 원격 관리 및 디버깅
+
+Dokploy API를 사용하면 SSH 접속 없이도 서버 상태를 확인하고 관리할 수 있습니다.
+
+### API 활용 시나리오
+
+| 상황 | SSH | API | 권장 |
+|------|-----|-----|------|
+| 애플리케이션 상태 확인 | ✅ | ✅ | API |
+| 앱 재배포/재시작 | ✅ | ✅ | API |
+| 환경 변수 수정 | ✅ | ✅ | API |
+| Traefik 설정 확인 | ✅ | ❌ | SSH |
+| 컨테이너 로그 실시간 확인 | ✅ | ❌ | SSH |
+| 데이터베이스 생성 | ✅ | ✅ | API |
+
+### 디버깅 시 API 활용 예제
+
+**1. 모든 프로젝트 및 애플리케이션 상태 조회**
+```bash
+# 프로젝트 목록 조회
+curl -X 'GET' \
+  "http://${DOKPLOY_SERVER_IP}:3000/api/project.all" \
+  -H 'accept: application/json' \
+  -H "x-api-key: ${DOKPLOY_API_KEY}"
+```
+
+**2. 특정 애플리케이션 상태 확인**
+```bash
+# 애플리케이션 상세 정보 조회 (applicationId 필요)
+curl -X 'GET' \
+  "http://${DOKPLOY_SERVER_IP}:3000/api/application.one?applicationId=${APP_ID}" \
+  -H 'accept: application/json' \
+  -H "x-api-key: ${DOKPLOY_API_KEY}"
+```
+
+**3. 문제 발생 시 애플리케이션 재배포**
+```bash
+# 애플리케이션 재배포 (문제 해결 후)
+curl -X 'POST' \
+  "http://${DOKPLOY_SERVER_IP}:3000/api/application.redeploy" \
+  -H 'Content-Type: application/json' \
+  -H "x-api-key: ${DOKPLOY_API_KEY}" \
+  -d "{\"applicationId\": \"${APP_ID}\"}"
+```
+
+**4. 환경 변수 확인 및 수정**
+```bash
+# 환경 변수 저장
+curl -X 'POST' \
+  "http://${DOKPLOY_SERVER_IP}:3000/api/application.saveEnvironment" \
+  -H 'Content-Type: application/json' \
+  -H "x-api-key: ${DOKPLOY_API_KEY}" \
+  -d "{\"applicationId\": \"${APP_ID}\", \"env\": \"NODE_ENV=production\nPORT=3000\"}"
+```
+
+**5. 배포 이력 조회 (오류 분석)**
+```bash
+# 최근 배포 이력 확인
+curl -X 'GET' \
+  "http://${DOKPLOY_SERVER_IP}:3000/api/deployment.all?applicationId=${APP_ID}" \
+  -H 'accept: application/json' \
+  -H "x-api-key: ${DOKPLOY_API_KEY}"
+```
+
+### AI 어시스턴트 디버깅 워크플로우
+
+문제 해결 시 다음 순서로 진행합니다:
+
+1. **API로 상태 확인**: 프로젝트/앱 목록 조회하여 현재 상태 파악
+2. **API로 배포 이력 확인**: 최근 배포 실패 여부 확인
+3. **SSH로 상세 로그 분석**: 컨테이너 로그, Traefik 로그 확인
+4. **API로 수정 적용**: 환경 변수 수정, 재배포 실행
+5. **결과 확인**: curl로 도메인 접속 테스트
+
+### API 문서 참조
+
+상세한 API 엔드포인트 및 파라미터는 [api.md](references/api.md)를 참조하세요.
+
+---
+
 ## 문제 발생 시 확인 순서
 
 1. 포트가 올바르게 설정되었는지 확인
 2. 앱이 `0.0.0.0`에서 수신 대기하는지 확인
 3. 도메인이 서버 IP를 가리키는지 확인
 4. 컨테이너 로그 확인: `docker service logs <service-name>`
-5. 상세 문제해결은 [troubleshooting.md](references/troubleshooting.md) 참조
+5. **API로 배포 상태 확인**: `deployment.all` 엔드포인트로 최근 배포 상태 조회
+6. 상세 문제해결은 [troubleshooting.md](references/troubleshooting.md) 참조
 
 ## 🔧 Traefik 디버깅 (도메인 접속 문제)
 
