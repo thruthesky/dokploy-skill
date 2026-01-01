@@ -2,12 +2,63 @@
 
 ## 목차
 
-1. [지원 데이터베이스](#지원-데이터베이스)
-2. [데이터베이스 생성](#데이터베이스-생성)
-3. [연결 정보 확인](#연결-정보-확인)
-4. [백업 및 복원](#백업-및-복원)
-5. [모니터링](#모니터링)
-6. [문제 해결](#문제-해결)
+1. [센터 프로젝트 데이터베이스 설정](#센터-프로젝트-데이터베이스-설정)
+2. [지원 데이터베이스](#지원-데이터베이스)
+3. [데이터베이스 생성](#데이터베이스-생성)
+4. [연결 정보 확인](#연결-정보-확인)
+5. [백업 및 복원](#백업-및-복원)
+6. [모니터링](#모니터링)
+7. [문제 해결](#문제-해결)
+
+---
+
+## 센터 프로젝트 데이터베이스 설정
+
+> **참고**: 센터 프로젝트의 데이터베이스 설정은 `.claude/skills/center-skill/scripts/config.sh`에 정의되어 있습니다.
+
+### PostgreSQL 접속 정보
+
+| 항목 | 값 |
+|------|-----|
+| **호스트** | `209.97.169.136` |
+| **포트** | `5433` |
+| **사용자** | `center` |
+| **데이터베이스** | `center` |
+
+### 데이터베이스 쿼리 실행
+
+센터 프로젝트에서는 `db-query.sh` 스크립트를 통해 데이터베이스 쿼리를 실행합니다:
+
+```bash
+# 테이블 목록 조회
+./.claude/skills/center-skill/scripts/db-query.sh "\dt"
+
+# 테이블 스키마 확인
+./.claude/skills/center-skill/scripts/db-query.sh "\d users"
+
+# SELECT 쿼리 실행
+./.claude/skills/center-skill/scripts/db-query.sh "SELECT * FROM users LIMIT 10"
+
+# 데이터 조작
+./.claude/skills/center-skill/scripts/db-query.sh "INSERT INTO ..."
+./.claude/skills/center-skill/scripts/db-query.sh "UPDATE ... SET ..."
+./.claude/skills/center-skill/scripts/db-query.sh "DELETE FROM ..."
+```
+
+### 연결 문자열
+
+```bash
+# config.sh에 정의된 연결 URL
+DB_URL="postgresql://center:***@209.97.169.136:5433/center"
+```
+
+### PHP에서 PDO 연결
+
+센터 프로젝트의 Dockerfile에서 PostgreSQL PDO 드라이버를 설치합니다:
+
+```dockerfile
+RUN docker-php-ext-install pdo pdo_pgsql
+```
 
 ---
 

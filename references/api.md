@@ -6,6 +6,58 @@ Dokploy는 RESTful API를 제공하여 애플리케이션 배포, 관리 및 모
 
 ---
 
+## 센터 프로젝트 API 설정
+
+> **참고**: 센터 프로젝트의 Dokploy API 설정은 `.claude/skills/center-skill/scripts/config.sh`에 정의되어 있습니다.
+
+### 주요 설정 값
+
+| 변수 | 설명 |
+|------|------|
+| `DOKPLOY_URL` | `http://209.97.169.136:3000` |
+| `DOKPLOY_APP_ID` | `DYmNZmKYtRG0RdNrsGcfn` |
+| `DOKPLOY_API_KEY` | config.sh 파일 참조 |
+
+### 공통 API 함수 (config.sh)
+
+```bash
+# Dokploy API 호출 함수
+dokploy_api() {
+  local endpoint="$1"
+  curl -s "$DOKPLOY_URL$endpoint" -H "x-api-key: $DOKPLOY_API_KEY"
+}
+
+# 배포 목록 가져오기
+get_deployments() {
+  dokploy_api "/api/deployment.all?applicationId=$DOKPLOY_APP_ID"
+}
+
+# 최신 배포 정보 가져오기
+get_latest_deployment() {
+  get_deployments | jq -r '.[0]'
+}
+
+# 최신 배포 상태 가져오기
+get_latest_status() {
+  get_deployments | jq -r '.[0].status'
+}
+```
+
+### 센터 프로젝트 API 사용 예시
+
+```bash
+# 설정 파일 로드
+source ./.claude/skills/center-skill/scripts/config.sh
+
+# 배포 목록 조회
+get_deployments | jq '.[] | {status, createdAt, title}'
+
+# 최신 배포 상태 확인
+get_latest_status
+```
+
+---
+
 ## 1. API 인증 (Authentication)
 
 ### 1.1 API 토큰 생성

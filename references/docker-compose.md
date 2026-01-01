@@ -2,14 +2,92 @@
 
 ## 목차
 
-1. [개요](#개요)
-2. [Compose 서비스 생성](#compose-서비스-생성)
-3. [Compose 파일 작성 규칙](#compose-파일-작성-규칙)
-4. [볼륨 마운트](#볼륨-마운트)
-5. [네트워크 설정](#네트워크-설정)
-6. [환경 변수](#환경-변수)
-7. [도메인 설정](#도메인-설정)
-8. [문제 해결](#문제-해결)
+1. [센터 프로젝트 Docker 설정](#센터-프로젝트-docker-설정)
+2. [개요](#개요)
+3. [Compose 서비스 생성](#compose-서비스-생성)
+4. [Compose 파일 작성 규칙](#compose-파일-작성-규칙)
+5. [볼륨 마운트](#볼륨-마운트)
+6. [네트워크 설정](#네트워크-설정)
+7. [환경 변수](#환경-변수)
+8. [도메인 설정](#도메인-설정)
+9. [문제 해결](#문제-해결)
+
+---
+
+## 센터 프로젝트 Docker 설정
+
+> **중요**: 센터 프로젝트는 Dokploy 배포 시 **docker-compose.yml을 사용하지 않습니다**. Dockerfile만 사용합니다.
+
+### 로컬 개발용 docker-compose.yml
+
+로컬 개발 환경에서만 사용하는 docker-compose.yml 설정:
+
+```yaml
+# docker-compose.yml (로컬 개발 전용)
+services:
+  center:
+    build:
+      context: .
+      dockerfile: etc/docker/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/www          # 소스 코드 실시간 반영
+      - ./uploads:/uploads  # 업로드 파일 영구 저장
+```
+
+**실행 방법:**
+```bash
+docker compose up
+```
+
+**접속 URL:**
+- 로컬 개발: `http://127.0.0.1:8080`
+- Browser-Sync: `http://localhost:3000` (`npm run dev` 실행 시)
+
+### Dokploy 배포용 Dockerfile
+
+```dockerfile
+# etc/docker/Dockerfile
+FROM php:8.4-fpm
+
+# PHP PDO 드라이버(PostgreSQL) + nginx + GD 라이브러리 + APCu 설치
+RUN apt-get update \
+  && apt-get install -y nginx libpq-dev \
+  libpng-dev libjpeg-dev libwebp-dev libfreetype6-dev \
+  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+  && docker-php-ext-install pdo pdo_pgsql gd \
+  && pecl install apcu \
+  && docker-php-ext-enable apcu \
+  && rm -rf /var/lib/apt/lists/*
+
+# uploads 폴더 생성 및 권한 설정
+RUN mkdir -p /uploads && chmod 777 /uploads
+
+# PHP 설정 파일 복사 (업로드 사이즈 50M 등)
+COPY etc/php/php.ini /usr/local/etc/php/php.ini
+
+# 작업 디렉토리 및 소스 코드 복사
+WORKDIR /www
+COPY . /www
+
+# nginx 설정 반영
+COPY etc/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY etc/nginx/conf.d/center.conf /etc/nginx/conf.d/center.conf
+
+# PHP-FPM + Nginx 같이 실행
+EXPOSE 80
+CMD php-fpm -D && nginx -g "daemon off;"
+```
+
+### 로컬 vs Dokploy 배포 차이점
+
+| 항목 | 로컬 개발 | Dokploy 배포 |
+|------|----------|-------------|
+| **소스 코드** | 볼륨 마운트 (실시간 반영) | COPY로 이미지에 포함 |
+| **포트** | 8080:80 | 80 (Traefik이 라우팅) |
+| **docker-compose.yml** | 사용 | 사용 안함 |
+| **Dockerfile** | 사용 | 사용 |
 
 ---
 

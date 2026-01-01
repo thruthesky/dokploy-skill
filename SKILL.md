@@ -23,9 +23,37 @@ description: |
 
 Dokploy는 셀프호스팅 PaaS(Platform as a Service) 도구로, Docker 기반 애플리케이션 배포를 간편하게 관리합니다.
 
-## 필수: 서버 접속 정보 요청
+## 센터 프로젝트 Dokploy 설정 정보
 
-모든 Dokploy 작업 시작 전, **반드시** 사용자에게 아래 정보를 요청합니다:
+> **참고**: 아래 정보는 센터 프로젝트의 실제 Dokploy 설정입니다. 설정 파일 위치: `.claude/skills/center-skill/scripts/config.sh`
+
+| 항목 | 값 |
+|------|-----|
+| **Dokploy 서버 URL** | `http://209.97.169.136:3000` |
+| **프로덕션 사이트** | `https://sonub.com` |
+| **SSH 접속** | `root@sonub.com` |
+| **애플리케이션 ID** | `DYmNZmKYtRG0RdNrsGcfn` |
+| **PostgreSQL 호스트** | `209.97.169.136:5433` |
+| **데이터베이스 이름** | `center` |
+
+### 배포 모니터링 스크립트
+
+```bash
+# 배포 상태 실시간 모니터링
+./.claude/skills/center-skill/scripts/deploy-watch.sh
+
+# 배포 상태 및 이력 조회
+./.claude/skills/center-skill/scripts/deploy-monitor.sh
+
+# 배포 실패 시 에러 로그 확인
+./.claude/skills/center-skill/scripts/deploy-error-check.sh auto
+```
+
+---
+
+## 일반 Dokploy 서버 접속 정보
+
+새로운 Dokploy 서버 작업 시, **반드시** 사용자에게 아래 정보를 요청합니다:
 
 | 변수 | 설명 | 예시 |
 |------|------|------|
@@ -53,18 +81,18 @@ Dokploy 서버 작업을 진행하기 전에 다음 정보가 필요합니다:
 
 작업 유형에 따라 해당 문서를 참조합니다:
 
-| 작업 | 문서 |
-|------|------|
-| **API를 통한 원격 관리** | [api.md](references/api.md) |
-| **애플리케이션 관리/설정** | [applications.md](references/applications.md) |
-| **빌드 타입 선택** | [build-types.md](references/build-types.md) |
-| **Cloudflare 도메인/SSL** | [cloudflare.md](references/cloudflare.md) |
-| **traefik.me 무료 도메인** | [traefik-me-domain.md](references/traefik-me-domain.md) |
-| **볼륨 백업/복원** | [volume-backups.md](references/volume-backups.md) |
-| **데이터베이스 관리** | [database.md](references/database.md) |
-| **Docker Compose 관리** | [docker-compose.md](references/docker-compose.md) |
-| **문제 해결/디버깅** | [debugging.md](references/debugging.md) |
-| **서버 유지보수/업데이트** | [maintenance.md](references/maintenance.md) |
+| 작업 | 문서 | 주요 내용 |
+|------|------|----------|
+| **API를 통한 원격 관리** | [api.md](references/api.md) | Dokploy REST API, 인증, 배포 자동화 |
+| **애플리케이션 관리/설정** | [applications.md](references/applications.md) | 환경변수, 모니터링, 리소스 관리, Swarm 설정 |
+| **빌드 타입 선택** | [build-types.md](references/build-types.md) | Nixpacks, Dockerfile, Buildpack 비교 |
+| **Cloudflare 도메인/SSL** | [cloudflare.md](references/cloudflare.md) | Cloudflare DNS, Origin CA, 프록시 설정 |
+| **traefik.me 무료 도메인** | [traefik-me-domain.md](references/traefik-me-domain.md) | 테스트용 무료 도메인 (HTTP only) |
+| **볼륨 백업/복원** | [volume-backups.md](references/volume-backups.md) | S3 연동, Named Volume 백업/복원 |
+| **데이터베이스 관리** | [database.md](references/database.md) | PostgreSQL, MySQL, MongoDB, Redis 관리 |
+| **Docker Compose 관리** | [docker-compose.md](references/docker-compose.md) | 멀티 컨테이너 설정, 볼륨 마운트 규칙 |
+| **문제 해결/디버깅** | [debugging.md](references/debugging.md) | 502 에러, 도메인 접속 문제, Traefik 로그 |
+| **서버 유지보수/업데이트** | [maintenance.md](references/maintenance.md) | Dokploy 업데이트, 디스크 관리, 백업 |
 
 ---
 
@@ -224,3 +252,83 @@ Cloudflare 사용 시 [cloudflare.md](references/cloudflare.md), 테스트용 �
 4. 테스트 백업 실행
 
 상세 가이드는 [volume-backups.md](references/volume-backups.md) 참조.
+
+---
+
+## 센터 프로젝트 Docker 설정
+
+### Dockerfile 구성 (`etc/docker/Dockerfile`)
+
+```dockerfile
+FROM php:8.4-fpm
+
+# 설치 패키지:
+# - nginx, libpq-dev (PostgreSQL)
+# - libpng-dev, libjpeg-dev, libwebp-dev, libfreetype6-dev (GD 이미지 처리)
+# - APCu (PHP 공유 메모리 캐시)
+
+# PHP 확장:
+# - pdo, pdo_pgsql (PostgreSQL PDO)
+# - gd (이미지 썸네일 생성)
+# - apcu (캐시)
+
+WORKDIR /www
+COPY . /www
+EXPOSE 80
+CMD php-fpm -D && nginx -g "daemon off;"
+```
+
+**주요 특징:**
+- PHP 8.4 + FPM + Nginx 단일 컨테이너
+- PostgreSQL PDO 드라이버
+- GD 라이브러리 (썸네일 생성)
+- APCu 캐시
+- 업로드 디렉토리: `/uploads` (777 권한)
+
+### docker-compose.yml (로컬 개발 전용)
+
+```yaml
+services:
+  center:
+    build:
+      context: .
+      dockerfile: etc/docker/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/www          # 소스 코드 실시간 반영
+      - ./uploads:/uploads  # 업로드 파일 영구 저장
+```
+
+**중요:** Dokploy 배포 시에는 docker-compose.yml을 사용하지 않습니다. Dockerfile만 사용하여 소스 코드가 COPY됩니다.
+
+### Nginx 설정 (`etc/nginx/conf.d/center.conf`)
+
+| 설정 | 값 | 설명 |
+|------|-----|------|
+| **client_max_body_size** | 50M | 최대 업로드 크기 |
+| **정적 파일 캐시** | 365일 | `/uploads/*` 경로 |
+| **PHP 실행 방지** | 403 | uploads 폴더 내 PHP 차단 |
+| **라우팅** | `layout.php` | 모든 요청을 Front Controller로 |
+
+### 배포 워크플로우
+
+```bash
+# 1. 테스트 실행 (Deploy + Browser 테스트)
+./deploy.sh
+
+# 2. 빌드 날짜 업데이트
+npm run patch:build-date
+
+# 3. 커밋 및 푸시
+git add .
+git commit -m "커밋 메시지"
+git push
+
+# 4. 배포 모니터링
+./.claude/skills/center-skill/scripts/deploy-watch.sh
+```
+
+**deploy.sh 테스트 항목:**
+- `tests/Deploy/**/*Test.php` - 배포 환경 테스트
+- `tests/Browser/**/*Test.php` - 브라우저 테스트

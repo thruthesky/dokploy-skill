@@ -2,11 +2,56 @@
 
 ## 목차
 
-1. [도메인/접속 문제](#도메인접속-문제)
-2. [마운트/볼륨 문제](#마운트볼륨-문제)
-3. [Docker Compose 문제](#docker-compose-문제)
-4. [Dokploy UI 접근 불가](#dokploy-ui-접근-불가)
-5. [기타 문제](#기타-문제)
+1. [센터 프로젝트 디버깅 스크립트](#센터-프로젝트-디버깅-스크립트)
+2. [도메인/접속 문제](#도메인접속-문제)
+3. [마운트/볼륨 문제](#마운트볼륨-문제)
+4. [Docker Compose 문제](#docker-compose-문제)
+5. [Dokploy UI 접근 불가](#dokploy-ui-접근-불가)
+6. [기타 문제](#기타-문제)
+
+---
+
+## 센터 프로젝트 디버깅 스크립트
+
+센터 프로젝트에는 배포 문제 해결을 위한 전용 스크립트가 있습니다.
+
+### 배포 에러 확인
+
+```bash
+# 최근 실패한 배포 자동 확인
+./.claude/skills/center-skill/scripts/deploy-error-check.sh auto
+
+# 특정 배포 ID로 에러 확인
+./.claude/skills/center-skill/scripts/deploy-error-check.sh <deploymentId>
+```
+
+**출력 정보:**
+- 배포 ID, 상태, 생성일, 제목
+- 로그 경로 (SSH로 서버 접속하여 확인)
+- 오류 로그 내용 (ERROR, WARNING 하이라이트)
+- 문제 해결 팁
+
+### 실시간 배포 모니터링
+
+```bash
+./.claude/skills/center-skill/scripts/deploy-watch.sh
+```
+
+**모니터링 항목:**
+- 배포 상태 (running → done/error)
+- 새로운 배포 감지
+- 상태 변경 알림
+- 최근 5개 배포 이력
+
+### 배포 상태 조회
+
+```bash
+./.claude/skills/center-skill/scripts/deploy-monitor.sh
+```
+
+**조회 정보:**
+- 최신 배포 상세 정보 (상태, 생성일, 제목, 배포 ID)
+- 최근 10개 배포 목록
 
 ---
 
