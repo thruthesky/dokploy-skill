@@ -23,57 +23,66 @@ description: |
 
 Dokploy는 셀프호스팅 PaaS(Platform as a Service) 도구로, Docker 기반 애플리케이션 배포를 간편하게 관리합니다.
 
-## 센터 프로젝트 Dokploy 설정 정보
-
-> **참고**: 아래 정보는 센터 프로젝트의 실제 Dokploy 설정입니다. 설정 파일 위치: `.claude/skills/center-skill/scripts/config.sh`
-
-| 항목 | 값 |
-|------|-----|
-| **Dokploy 서버 URL** | `http://209.97.169.136:3000` |
-| **프로덕션 사이트** | `https://sonub.com` |
-| **SSH 접속** | `root@sonub.com` |
-| **애플리케이션 ID** | `DYmNZmKYtRG0RdNrsGcfn` |
-| **PostgreSQL 호스트** | `209.97.169.136:5433` |
-| **데이터베이스 이름** | `center` |
-
-### 배포 모니터링 스크립트
-
-```bash
-# 배포 상태 실시간 모니터링
-./.claude/skills/center-skill/scripts/deploy-watch.sh
-
-# 배포 상태 및 이력 조회
-./.claude/skills/center-skill/scripts/deploy-monitor.sh
-
-# 배포 실패 시 에러 로그 확인
-./.claude/skills/center-skill/scripts/deploy-error-check.sh auto
-```
-
 ---
 
-## 일반 Dokploy 서버 접속 정보
+## 🚨🚨🚨 필수 파라미터 (MANDATORY) 🚨🚨🚨
 
-새로운 Dokploy 서버 작업 시, **반드시** 사용자에게 아래 정보를 요청합니다:
+> **⛔⛔⛔ 절대 규칙: 아래 4가지 정보 없이는 어떤 작업도 시작하지 마세요! ⛔⛔⛔**
+>
+> 사용자가 Dokploy 관련 작업을 요청하면, **반드시 첫 번째 응답에서** 아래 필수 정보를 확인하세요.
+> 정보가 누락된 경우, 작업을 진행하지 말고 즉시 사용자에게 요청하세요.
 
-| 변수 | 설명 | 예시 |
-|------|------|------|
-| `DOKPLOY_SERVER_IP` | Dokploy 서버 IP | `1.2.3.4` |
-| `ROOT_SSH_CONNECTION` | Root SSH 접속 주소 | `root@1.2.3.4` |
-| `DOKPLOY_API_KEY` | Dokploy API 키 | Settings → Profile → API/CLI에서 생성 |
+### 필수 입력 항목 (4가지)
 
-**보안 원칙**: 접속 정보는 메모리에만 보관하고, 파일에 저장하지 않습니다.
+| # | 항목 | 설명 | 예시 |
+|---|------|------|------|
+| 1 | **Dokploy 서버 URL** | Dokploy 대시보드 접속 주소 | `http://1.2.3.4:3000` |
+| 2 | **프로덕션 사이트 URL** | 배포된 애플리케이션 URL | `https://example.com` |
+| 3 | **Root SSH 접속 정보** | 서버 SSH 접속 주소 | `root@1.2.3.4` 또는 `root@example.com` |
+| 4 | **애플리케이션 ID** | Dokploy 애플리케이션 고유 ID | `DYmNZmKYtRG0RdNrsGcfn` |
 
-### 사용자에게 요청할 질문
+### 🔐 SSH 키 인증 필수 조건
+
+> **⚠️ 중요: 비밀번호 인증은 지원하지 않습니다!**
+>
+> SSH 접속은 반드시 **SSH 키 인증** 방식으로 설정되어 있어야 합니다.
+> 사용자에게 아래 명령어로 SSH 키 복사가 완료되었는지 확인하세요:
+>
+> ```bash
+> # SSH 키가 서버에 등록되어 있어야 합니다
+> ssh-copy-id root@서버IP
+>
+> # 비밀번호 없이 접속 가능한지 테스트
+> ssh root@서버IP "echo 'SSH 키 인증 성공'"
+> ```
+
+### 사용자에게 요청할 메시지 템플릿
+
+정보가 누락된 경우, 아래 메시지를 사용하여 사용자에게 요청하세요:
 
 ```
-Dokploy 서버 작업을 진행하기 전에 다음 정보가 필요합니다:
+🚨 Dokploy 작업을 시작하기 전에 다음 4가지 필수 정보가 필요합니다:
 
-1. Dokploy 서버 IP 주소 (예: 1.2.3.4)
-2. Root SSH 접속 주소 (예: root@1.2.3.4)
-3. Dokploy API 키 (Settings → Profile → API/CLI에서 생성)
+1. 📍 Dokploy 서버 URL (예: http://1.2.3.4:3000)
+2. 🌐 프로덕션 사이트 URL (예: https://example.com)
+3. 🔑 Root SSH 접속 정보 (예: root@1.2.3.4)
+4. 🆔 애플리케이션 ID (Dokploy 대시보드에서 확인)
 
-※ SSH 키 인증이 설정되어 있어야 합니다 (ssh-copy-id 완료)
+⚠️ SSH 키 인증 필수:
+   비밀번호 없이 SSH 접속이 가능해야 합니다.
+   아직 설정하지 않았다면: ssh-copy-id root@서버IP
+
+위 정보를 모두 알려주시면 작업을 시작하겠습니다.
 ```
+
+### 정보 검증 체크리스트
+
+작업 시작 전 반드시 확인:
+
+- [ ] Dokploy 서버 URL이 `http://IP:3000` 형식인지
+- [ ] 프로덕션 URL이 유효한 도메인/IP인지
+- [ ] SSH 접속이 `root@` 형식인지
+- [ ] 애플리케이션 ID가 알파벳+숫자 조합인지
 
 ---
 
@@ -137,49 +146,49 @@ volumes:
 
 ```bash
 # Docker 컨테이너 상태 확인
-ssh root@$SERVER_IP "docker ps"
+ssh $ROOT_SSH "docker ps"
 
 # Dokploy 필수 컨테이너 확인 (4개: dokploy, postgres, redis, traefik)
-ssh root@$SERVER_IP "docker ps | grep -E 'dokploy|postgres|redis|traefik'"
+ssh $ROOT_SSH "docker ps | grep -E 'dokploy|postgres|redis|traefik'"
 
 # 디스크 사용량 확인
-ssh root@$SERVER_IP "df -h"
+ssh $ROOT_SSH "df -h"
 ```
 
 ### 도메인 접속 문제 진단
 
 ```bash
 # DNS 확인
-dig +short example.com
+dig +short $PRODUCTION_DOMAIN
 
 # HTTP 응답 확인
-curl -sI https://example.com | head -10
+curl -sI https://$PRODUCTION_DOMAIN | head -10
 
 # Traefik 설정에서 도메인 검색
-ssh root@$SERVER_IP "grep -r 'example.com' /etc/dokploy/traefik/dynamic/*.yml"
+ssh $ROOT_SSH "grep -r '$PRODUCTION_DOMAIN' /etc/dokploy/traefik/dynamic/*.yml"
 
 # SSL 인증서 확인
-echo | openssl s_client -connect example.com:443 -servername example.com 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -connect $PRODUCTION_DOMAIN:443 -servername $PRODUCTION_DOMAIN 2>/dev/null | openssl x509 -noout -dates
 ```
 
 ### 컨테이너 로그 확인
 
 ```bash
 # Traefik 로그
-ssh root@$SERVER_IP "docker logs dokploy-traefik --tail 100"
+ssh $ROOT_SSH "docker logs dokploy-traefik --tail 100"
 
 # 특정 서비스 로그
-ssh root@$SERVER_IP "docker service logs <service-name> --tail 100"
+ssh $ROOT_SSH "docker service logs <service-name> --tail 100"
 ```
 
 ### Docker 재시작
 
 ```bash
 # Traefik만 재시작
-ssh root@$SERVER_IP "docker restart dokploy-traefik"
+ssh $ROOT_SSH "docker restart dokploy-traefik"
 
 # Dokploy 전체 재시작
-ssh root@$SERVER_IP "docker service update --force dokploy"
+ssh $ROOT_SSH "docker service update --force dokploy"
 ```
 
 ---
@@ -190,18 +199,18 @@ ssh root@$SERVER_IP "docker service update --force dokploy"
 
 ```bash
 # 모든 프로젝트 조회
-curl -X GET "http://$SERVER_IP:3000/api/project.all" \
+curl -X GET "$DOKPLOY_URL/api/project.all" \
   -H "x-api-key: $API_KEY"
 
 # 특정 애플리케이션 조회
-curl -X GET "http://$SERVER_IP:3000/api/application.one?applicationId=$APP_ID" \
+curl -X GET "$DOKPLOY_URL/api/application.one?applicationId=$APP_ID" \
   -H "x-api-key: $API_KEY"
 ```
 
 ### 애플리케이션 재배포
 
 ```bash
-curl -X POST "http://$SERVER_IP:3000/api/application.redeploy" \
+curl -X POST "$DOKPLOY_URL/api/application.redeploy" \
   -H "Content-Type: application/json" \
   -H "x-api-key: $API_KEY" \
   -d "{\"applicationId\": \"$APP_ID\"}"
@@ -252,83 +261,3 @@ Cloudflare 사용 시 [cloudflare.md](references/cloudflare.md), 테스트용 �
 4. 테스트 백업 실행
 
 상세 가이드는 [volume-backups.md](references/volume-backups.md) 참조.
-
----
-
-## 센터 프로젝트 Docker 설정
-
-### Dockerfile 구성 (`etc/docker/Dockerfile`)
-
-```dockerfile
-FROM php:8.4-fpm
-
-# 설치 패키지:
-# - nginx, libpq-dev (PostgreSQL)
-# - libpng-dev, libjpeg-dev, libwebp-dev, libfreetype6-dev (GD 이미지 처리)
-# - APCu (PHP 공유 메모리 캐시)
-
-# PHP 확장:
-# - pdo, pdo_pgsql (PostgreSQL PDO)
-# - gd (이미지 썸네일 생성)
-# - apcu (캐시)
-
-WORKDIR /www
-COPY . /www
-EXPOSE 80
-CMD php-fpm -D && nginx -g "daemon off;"
-```
-
-**주요 특징:**
-- PHP 8.4 + FPM + Nginx 단일 컨테이너
-- PostgreSQL PDO 드라이버
-- GD 라이브러리 (썸네일 생성)
-- APCu 캐시
-- 업로드 디렉토리: `/uploads` (777 권한)
-
-### docker-compose.yml (로컬 개발 전용)
-
-```yaml
-services:
-  center:
-    build:
-      context: .
-      dockerfile: etc/docker/Dockerfile
-    ports:
-      - "8080:80"
-    volumes:
-      - .:/www          # 소스 코드 실시간 반영
-      - ./uploads:/uploads  # 업로드 파일 영구 저장
-```
-
-**중요:** Dokploy 배포 시에는 docker-compose.yml을 사용하지 않습니다. Dockerfile만 사용하여 소스 코드가 COPY됩니다.
-
-### Nginx 설정 (`etc/nginx/conf.d/center.conf`)
-
-| 설정 | 값 | 설명 |
-|------|-----|------|
-| **client_max_body_size** | 50M | 최대 업로드 크기 |
-| **정적 파일 캐시** | 365일 | `/uploads/*` 경로 |
-| **PHP 실행 방지** | 403 | uploads 폴더 내 PHP 차단 |
-| **라우팅** | `layout.php` | 모든 요청을 Front Controller로 |
-
-### 배포 워크플로우
-
-```bash
-# 1. 테스트 실행 (Deploy + Browser 테스트)
-./deploy.sh
-
-# 2. 빌드 날짜 업데이트
-npm run patch:build-date
-
-# 3. 커밋 및 푸시
-git add .
-git commit -m "커밋 메시지"
-git push
-
-# 4. 배포 모니터링
-./.claude/skills/center-skill/scripts/deploy-watch.sh
-```
-
-**deploy.sh 테스트 항목:**
-- `tests/Deploy/**/*Test.php` - 배포 환경 테스트
-- `tests/Browser/**/*Test.php` - 브라우저 테스트
