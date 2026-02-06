@@ -17,6 +17,8 @@ description: |
   (8) 컨테이너 로그 확인, 서버 상태 점검
   (9) 서버 유지보수, Dokploy 업데이트
   (10) 빌드 타입 선택 (Nixpacks, Dockerfile, Buildpack)
+  (11) 와일드카드 도메인(SAN 인증서)에서 특정 서브도메인을 별도 컨테이너로 라우팅
+  (12) pgAdmin4 설치, 설정, 도메인 연결
 ---
 
 # Dokploy 서버 관리 스킬
@@ -100,6 +102,8 @@ Dokploy는 셀프호스팅 PaaS(Platform as a Service) 도구로, Docker 기반 
 | **볼륨 백업/복원** | [volume-backups.md](references/volume-backups.md) | S3 연동, Named Volume 백업/복원 |
 | **데이터베이스 관리** | [database.md](references/database.md) | PostgreSQL, MySQL, MongoDB, Redis 관리 |
 | **Docker Compose 관리** | [docker-compose.md](references/docker-compose.md) | 멀티 컨테이너 설정, 볼륨 마운트 규칙 |
+| **와일드카드 서브도메인 라우팅** | [wildcard-subdomain-routing.md](references/wildcard-subdomain-routing.md) | 와일드카드 SAN 인증서 환경에서 특정 서브도메인을 별도 컨테이너로 라우팅 추가/삭제 |
+| **pgAdmin4 설치/설정** | [pgadmin.md](references/pgadmin.md) | pgAdmin4 Docker Compose 배포, 와일드카드 도메인 연결, PostgreSQL 서버 등록 |
 | **문제 해결/디버깅** | [debugging.md](references/debugging.md) | 502 에러, 도메인 접속 문제, Traefik 로그 |
 | **서버 유지보수/업데이트** | [maintenance.md](references/maintenance.md) | Dokploy 업데이트, 디스크 관리, 백업 |
 
