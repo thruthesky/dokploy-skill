@@ -102,6 +102,7 @@ Dokploy는 셀프호스팅 PaaS(Platform as a Service) 도구로, Docker 기반 
 | **Docker Compose 관리** | [docker-compose.md](references/docker-compose.md) | 멀티 컨테이너 설정, 볼륨 마운트 규칙 |
 | **문제 해결/디버깅** | [debugging.md](references/debugging.md) | 502 에러, 도메인 접속 문제, Traefik 로그 |
 | **서버 유지보수/업데이트** | [maintenance.md](references/maintenance.md) | Dokploy 업데이트, 디스크 관리, 백업 |
+| **OpenClaw(Moltbot) 배포** | [openclaw.md](references/openclaw.md) | Docker Compose YAML, Gateway Token, Device Pairing, API 키/모델 설정, 트러블슈팅 |
 
 ---
 
