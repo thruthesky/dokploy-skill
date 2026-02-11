@@ -113,7 +113,14 @@ OpenClaw 설치를 시작하겠습니다. 먼저 아래 6가지 정보가 필요
 
 ### OpenClaw이란?
 
-OpenClaw은 AI Gateway 플랫폼으로, 다양한 AI 모델(Claude, GPT, DeepSeek 등)을 웹 UI를 통해 관리하고 사용할 수 있는 셀프호스팅 솔루션이다. Docker 이미지명은 `moltbot/moltbot:latest`이며 Docker Hub에서 배포된다.
+OpenClaw은 AI Gateway 플랫폼으로, 다양한 AI 모델(Claude, GPT, DeepSeek 등)을 웹 UI를 통해 관리하고 사용할 수 있는 셀프호스팅 솔루션이다. Docker 이미지명은 `moltbot/moltbot:patched`이며 Docker Hub에서 배포된다.
+
+> **⛔⛔⛔ 이미지 태그 절대 규칙: `moltbot/moltbot:latest`를 사용하면 안 된다! 반드시 `moltbot/moltbot:patched`를 사용해야 한다. ⛔⛔⛔**
+>
+> `latest` 태그 이미지에는 `memory-core` 플러그인 관련 **치명적 버그**가 있어 컨테이너가 크래시 루프에 빠진다.
+> 에러 메시지: `plugins.slots.memory: plugin not found: memory-core`
+> 이 버그는 `--allow-unconfigured` 플래그로도 회피되지 않으며, `moltbot doctor --fix`로도 수정되지 않는다.
+> **유일한 해결책은 `patched` 태그 이미지를 사용하는 것이다.**
 
 ### 공식 문서
 
@@ -162,7 +169,7 @@ docker compose up -d openclaw-gateway
 
 | 항목 | 값 |
 |------|-----|
-| **Docker 이미지** | `moltbot/moltbot:latest` (Docker Hub) |
+| **Docker 이미지** | `moltbot/moltbot:patched` (Docker Hub) - **`latest` 사용 금지!** |
 | **패키지명** | moltbot (OpenClaw의 이전 버전명) |
 | **기본 포트** | 18789 (Gateway), 18790 (Canvas) |
 | **설정 디렉토리 (런타임)** | `/home/node/.clawdbot` (실제 런타임에 사용되는 경로) |
@@ -216,7 +223,7 @@ Dokploy UI의 Compose 서비스 → General → Raw 탭에 입력하는 YAML:
 ```yaml
 services:
   moltbot-gateway:
-    image: moltbot/moltbot:latest
+    image: moltbot/moltbot:patched  # ⛔ latest 사용 금지! memory-core 플러그인 버그로 크래시 루프 발생
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -255,7 +262,7 @@ networks:
 
 | 설정 | 설명 | 왜 필요한가 |
 |------|------|------------|
-| `image: moltbot/moltbot:latest` | Docker Hub 공식 이미지 | 필수 |
+| `image: moltbot/moltbot:patched` | Docker Hub 패치 이미지 (**`latest` 사용 금지!**) | 필수. `latest`는 memory-core 버그로 크래시 |
 | `--bind lan` | 모든 인터페이스(0.0.0.0)에서 수신 | Traefik 연결을 위해 필수 |
 | `--port 18789` | Gateway 포트 지정 | 포트 일관성 유지 |
 | `--allow-unconfigured` | 초기 설정 없이 시작 가능 | 첫 배포 시 필수 |
@@ -291,6 +298,37 @@ command:
   - gateway
   - --bind
   - lan
+```
+
+### ⛔ 이미지 태그 절대 규칙
+
+```yaml
+# ✅ 올바른 이미지 (patched 태그 사용)
+image: moltbot/moltbot:patched
+
+# ❌ 잘못된 이미지 (latest 태그 - memory-core 버그로 크래시 루프 발생!)
+image: moltbot/moltbot:latest
+```
+
+> **왜 `latest`를 사용하면 안 되는가?**
+>
+> `moltbot/moltbot:latest` 이미지에는 `memory-core` 플러그인이 기본 설정에 등록되어 있으나,
+> 실제 플러그인 바이너리가 이미지에 포함되어 있지 않다. 이로 인해 컨테이너 시작 시
+> `plugins.slots.memory: plugin not found: memory-core` 에러가 발생하며 크래시 루프에 빠진다.
+> `--allow-unconfigured` 플래그로도 이 문제는 회피되지 않으며, `moltbot doctor --fix`로도 수정되지 않는다.
+> **유일한 해결책은 `moltbot/moltbot:patched` 이미지를 사용하는 것이다.**
+
+### ⛔ 환경변수 CLAWDBOT_PLUGINS 주의사항
+
+```bash
+# ❌ memory-core 포함 시 크래시 발생 (patched 이미지에서도 주의)
+CLAWDBOT_PLUGINS=discord,memory-core
+
+# ✅ memory-core 제거
+CLAWDBOT_PLUGINS=discord
+
+# ✅ 가장 안전: 환경변수 자체를 설정하지 않음
+# (CLAWDBOT_PLUGINS 환경변수 삭제)
 ```
 
 ---
@@ -1044,8 +1082,76 @@ ssh root@서버IP "docker exec $CONTAINER ls /app/docs/reference/templates/"
 | **Unknown model** | 모델 provider 미설정 | moltbot.json에 provider 설정 추가 |
 | **No API key found** | auth-profiles.json에 API 키 없음 | auth-profiles.json 생성/수정 |
 | **Missing workspace template** | 워크스페이스에 .md 파일 없음 | 템플릿 파일 일괄 생성 |
-| **memory-core plugin not found** | 이미지의 알려진 버그 | `--allow-unconfigured` 플래그 확인 (있으면 무시됨) |
-| **컨테이너 재시작 루프** | 설정 파일 유효성 검사 실패 | `moltbot.json` 확인 또는 삭제 후 재시작 |
+| **memory-core plugin not found** | **`latest` 이미지의 치명적 버그** | **반드시 `moltbot/moltbot:patched` 이미지로 변경** (아래 상세 참조) |
+| **컨테이너 재시작 루프** | 설정 파일 유효성 검사 실패 또는 `latest` 이미지 버그 | `moltbot.json` 확인, 이미지 태그 `patched`인지 확인 |
+
+### memory-core 플러그인 크래시 루프 (치명적)
+
+> **⛔ 이 문제는 매우 흔하게 발생하며, `--allow-unconfigured` 플래그나 `moltbot doctor --fix`로도 해결되지 않는다!**
+
+**증상:**
+- 컨테이너가 시작 직후 즉시 종료되며 재시작 루프에 빠짐
+- `docker ps`에서 `Restarting (1) X seconds ago` 상태 반복
+- 로그에 아래 에러 반복 출력:
+
+```
+Invalid config at /home/node/.moltbot/moltbot.json:
+- plugins.slots.memory: plugin not found: memory-core
+Config invalid
+```
+
+**근본 원인:**
+- `moltbot/moltbot:latest` 이미지에 `memory-core` 플러그인이 기본 설정에 포함되어 있으나, 실제 플러그인 바이너리가 이미지에 없음
+- 이 버그는 이미지 자체의 결함으로, 사용자 설정과 무관하게 발생
+- `moltbot.json`에 `plugins` 관련 설정이 없어도 이미지 기본값에서 로드를 시도함
+- 환경변수 `CLAWDBOT_PLUGINS`에 `memory-core`가 포함되어 있으면 문제가 더 악화됨
+
+**해결 방법 (유일한 해결책):**
+
+```bash
+# 1단계: 이미지 태그 확인
+docker inspect <컨테이너이름> --format '{{.Config.Image}}'
+# 출력이 moltbot/moltbot:latest 이면 문제!
+
+# 2단계: docker-compose.yml에서 이미지 변경
+# image: moltbot/moltbot:latest   ← ❌ 크래시 루프 발생
+# image: moltbot/moltbot:patched  ← ✅ 정상 작동
+
+# 3단계: 환경변수에서 CLAWDBOT_PLUGINS 제거 (있는 경우)
+# CLAWDBOT_PLUGINS=discord,memory-core  ← ❌ memory-core 제거 필요
+# CLAWDBOT_PLUGINS=discord              ← ✅ 또는 환경변수 자체 삭제
+
+# 4단계: 재배포
+```
+
+**Dokploy API를 통한 수정:**
+
+```bash
+# Compose YAML에서 이미지 변경 후 업데이트
+curl -X POST "$DOKPLOY_URL/api/compose.update" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY" \
+  -d '{"composeId": "COMPOSE_ID", "composeFile": "수정된_YAML"}'
+
+# 환경변수에서 CLAWDBOT_PLUGINS 제거 후 업데이트
+curl -X POST "$DOKPLOY_URL/api/compose.update" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY" \
+  -d '{"composeId": "COMPOSE_ID", "env": "CLAWDBOT_PLUGINS 없는 환경변수"}'
+
+# 재배포
+curl -X POST "$DOKPLOY_URL/api/compose.deploy" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY" \
+  -d '{"composeId": "COMPOSE_ID"}'
+```
+
+**이미지 태그별 비교:**
+
+| 태그 | memory-core 버그 | 상태 | 사용 여부 |
+|------|-----------------|------|----------|
+| `moltbot/moltbot:latest` | 있음 (크래시 루프) | 사용 금지 | ❌ |
+| `moltbot/moltbot:patched` | 수정됨 (정상) | 권장 | ✅ |
 
 ### 도메인 접속 불가 디버깅 체크리스트
 
