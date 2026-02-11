@@ -57,8 +57,9 @@ OpenClaw 설치를 시작하겠습니다. 먼저 아래 6가지 정보가 필요
 
 #### 문제 요약
 
-`moltbot/moltbot:latest` Docker 이미지의 기본 config에는 `plugins.slots.memory: "memory-core"`가 설정되어 있다.
-그런데 **`memory-core` 플러그인은 현재 이미지에 포함되어 있지 않다.** 이것은 이미지의 알려진 버그이다.
+`moltbot/moltbot` Docker 이미지의 기본 config에는 `plugins.slots.memory: "memory-core"`가 설정되어 있다.
+그런데 **`memory-core` 플러그인은 이미지에 포함되어 있지 않다.** 이것은 이미지의 알려진 버그이다.
+(`patched` 태그 이미지에서도 moltbot.json 생성 시 이 설정이 필요하다.)
 
 이로 인해 다음 **모든 상황에서** 설정 변경이 실패한다:
 
