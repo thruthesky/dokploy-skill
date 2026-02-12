@@ -32,7 +32,7 @@ Dokploy는 셀프호스팅 PaaS 도구로, Docker 기반 애플리케이션 배�
 
 | 작업 | 문서 |
 |------|------|
-| API를 통한 원격 관리 | [api.md](references/api.md) |
+| API를 통한 원격 관리 | [center-api.md](references/center-api.md) |
 | 애플리케이션 관리/설정 | [applications.md](references/applications.md) |
 | 빌드 타입 선택 | [build-types.md](references/build-types.md) |
 | Cloudflare 도메인/SSL | [cloudflare.md](references/cloudflare.md) |
