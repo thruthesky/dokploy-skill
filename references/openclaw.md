@@ -579,6 +579,57 @@ ssh root@167.88.45.173 "docker logs compose-back-up-online-program-m32ael-moltbo
 
 이 메시지는 이미지의 알려진 버그이며, `--allow-unconfigured` 플래그가 있으면 정상 작동한다.
 
+### 5.7.1 ⛔ 볼륨 권한 수정 (필수!)
+
+> **⛔⛔⛔ 첫 배포 후 반드시 볼륨 권한을 수정해야 한다! ⛔⛔⛔**
+>
+> Docker 명명된 볼륨(`moltbot-config`)이 처음 생성될 때 소유권이 `root:root`로 설정된다.
+> 컨테이너는 `node` 사용자(uid 1000)로 실행되므로, `/home/node/.moltbot` 디렉토리에 쓰기 권한이 없다.
+> 이로 인해 `devices`, `cron` 등 하위 디렉토리를 생성할 수 없어 **Device Pairing이 불가능**하다.
+
+#### 증상
+
+브라우저에서 접속 시 아래 에러가 표시된다:
+
+```
+disconnected (1000): no reason
+```
+
+컨테이너 로그에 아래 에러가 반복된다:
+
+```
+[gateway] parse/handle error: Error: EACCES: permission denied, mkdir '/home/node/.moltbot/devices'
+[ws] ✗ parse-error error=Error: EACCES: permission denied, mkdir '/home/node/.moltbot/devices'
+[ws] closed before connect ... code=1000 reason=n/a
+```
+
+> **주의**: 이 에러는 `pairing required` (1008)과 다르다!
+> - `disconnected (1000): no reason` → 볼륨 권한 문제 (이 섹션의 해결 방법 적용)
+> - `disconnected (1008): pairing required` → 정상적인 Device Pairing 필요 (Section 7 참조)
+
+#### 해결 방법
+
+```bash
+# 컨테이너 내부에서 root 권한으로 소유권 변경
+ssh root@서버IP "docker exec --user root $CONTAINER chown -R node:node /home/node/.moltbot"
+
+# 컨테이너 재시작
+ssh root@서버IP "docker restart $CONTAINER"
+```
+
+#### 스킬 워크플로우에서의 위치
+
+**첫 배포 완료 직후 (5.7 이후), 도메인 추가 전 (6 이전)에 반드시 실행해야 한다.**
+
+```bash
+# 5.7 완료 후 즉시 실행
+CONTAINER=$(ssh root@서버IP "docker ps --format '{{.Names}}' | grep moltbot | head -1")
+ssh root@서버IP "docker exec --user root $CONTAINER chown -R node:node /home/node/.moltbot"
+echo "볼륨 권한 수정 완료"
+```
+
+> **참고**: 이 작업은 첫 배포 시 한 번만 실행하면 된다. 재배포 시에는 볼륨이 이미 존재하므로 소유권이 유지된다.
+
 ### 5.8 전체 과정 요약 다이어그램
 
 ```
@@ -593,6 +644,8 @@ ssh root@167.88.45.173 "docker logs compose-back-up-online-program-m32ael-moltbo
 [4. compose.deploy API]            → 첫 번째 배포 실행
         ↓
 [5. compose.one API / SSH 확인]    → 배포 상태 확인 (composeStatus: "done")
+        ↓
+[5.1 볼륨 권한 수정 (docker exec)] → ⚠️ chown -R node:node /home/node/.moltbot (첫 배포 시 필수!)
         ↓
 [6. 도메인 추가 (UI 또는 API)]     → 도메인 + HTTPS + Container Port 18789
         ↓
@@ -1084,6 +1137,9 @@ ssh root@서버IP "docker exec $CONTAINER ls /app/docs/reference/templates/"
 | **No API key found** | auth-profiles.json에 API 키 없음 | auth-profiles.json 생성/수정 |
 | **Missing workspace template** | 워크스페이스에 .md 파일 없음 | 템플릿 파일 일괄 생성 |
 | **memory-core plugin not found** | **`latest` 이미지의 치명적 버그** | **반드시 `moltbot/moltbot:patched` 이미지로 변경** (아래 상세 참조) |
+| **EACCES: permission denied, mkdir .moltbot/devices** | 볼륨 소유권이 root로 설정됨 (첫 배포 시 발생) | `docker exec --user root $CONTAINER chown -R node:node /home/node/.moltbot` + 컨테이너 재시작 |
+| **disconnected (1000): no reason** | 볼륨 권한 문제로 devices 디렉토리 생성 불가 | 위 EACCES 해결 방법과 동일 (볼륨 권한 수정 후 재시작) |
+| **[cron] failed to start: EACCES** | 볼륨 권한 문제로 cron 디렉토리 생성 불가 | 위 EACCES 해결 방법과 동일 |
 | **컨테이너 재시작 루프** | 설정 파일 유효성 검사 실패 또는 `latest` 이미지 버그 | `moltbot.json` 확인, 이미지 태그 `patched`인지 확인 |
 
 ### memory-core 플러그인 크래시 루프 (치명적)
@@ -1451,6 +1507,23 @@ echo "=== 5단계: 컨테이너 실행 확인 ==="
 ssh $SSH_CONNECTION "docker ps --format '{{.Names}}\t{{.Status}}' | grep moltbot"
 
 # =============================================
+# 5.1단계: ⛔ 볼륨 권한 수정 (필수!)
+# Docker named volume은 root 소유로 생성되지만 컨테이너는 node 사용자로 실행됨
+# 권한 수정 안 하면 EACCES 에러 + "disconnected (1000): no reason" 발생
+# =============================================
+echo "=== 5.1단계: 볼륨 권한 수정 (node 사용자로 변경) ==="
+CONTAINER=$(ssh $SSH_CONNECTION "docker ps --format '{{.Names}}' | grep moltbot | head -1")
+echo "컨테이너: $CONTAINER"
+
+ssh $SSH_CONNECTION "docker exec --user root $CONTAINER chown -R node:node /home/node/.moltbot"
+echo "볼륨 권한 수정 완료"
+
+# 컨테이너 재시작 (권한 변경 적용)
+ssh $SSH_CONNECTION "docker restart $CONTAINER"
+echo "컨테이너 재시작 완료. 10초 대기..."
+sleep 10
+
+# =============================================
 # 6단계: 도메인이 설정된 경우 재배포
 # =============================================
 if [ -n "$DOMAIN" ]; then
@@ -1573,6 +1646,7 @@ echo "========================================="
 | 3 | Docker Compose YAML 입력 | `compose.update` API | Token + **API Key 환경변수** 포함, sourceType: "raw" 필수 |
 | 4 | 첫 번째 배포 실행 | `compose.deploy` API | 이미지 풀 + 컨테이너 생성 |
 | 5 | 컨테이너 정상 확인 | SSH: `docker ps`, `docker logs` | 3줄 정상 로그 확인 |
+| **5.1** | **⛔ 볼륨 권한 수정** | SSH: `docker exec --user root $CONTAINER chown -R node:node /home/node/.moltbot` + 재시작 | **첫 배포 후 필수! 안 하면 EACCES 에러** |
 | 6 | 도메인 추가 | UI 또는 `domain.create` API | Host, Port **18789**, HTTPS, Let's Encrypt, Service: moltbot-gateway |
 | 7 | **재배포 실행** | `compose.deploy` API | **⚠️ 도메인 추가 후 필수!** |
 | 8 | **템플릿 파일 생성** | SSH: `docker exec` | 13개 .md 파일을 `/app/docs/reference/templates/`에 생성 |
@@ -1594,6 +1668,7 @@ echo "========================================="
 | 5 | **⛔ moltbot.json에 `plugins.slots.memory: "none"` 필수** | **없으면 memory-core validation 실패 → 모든 설정 변경 불가, 재시작 루프 (Section 0 상세 설명)** |
 | 6 | **API 키는 Docker Compose 환경변수 + moltbot.json** | Web UI Config Save는 memory-core 버그로 작동 안 함 |
 | 7 | **재배포 시 템플릿 파일 재생성 필요** | /app/ 경로는 이미지 내부, 볼륨에 저장 안 됨 |
+| 8 | **⛔ 첫 배포 후 볼륨 권한 수정 필수** | Docker named volume이 root 소유로 생성됨 → `chown -R node:node` 필요 |
 
 ### 사용된 Dokploy API 엔드포인트 요약
 
