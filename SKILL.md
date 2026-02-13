@@ -45,6 +45,7 @@ Dokploy는 셀프호스팅 PaaS 도구로, Docker 기반 애플리케이션 배�
 | 문제 해결/디버깅 | [debugging.md](references/debugging.md) |
 | 서버 유지보수/업데이트 | [maintenance.md](references/maintenance.md) |
 | OpenClaw(Moltbot) 배포 | [openclaw.md](references/openclaw.md) |
+| Supabase 셀프호스팅 관리 | [supabase.md](references/supabase.md) |
 
 ---
 
